@@ -1,70 +1,85 @@
-import React from 'react';
-import Calendar from '../Calendar';
-import { isDate, getDateISO } from '../../helpers/calendar';
-import { DatePickerContainer, DatePickerFormGroup, DatePickerLabel, DatePickerInput, DatePickerDropdown, DatePickerDropdownToggle, DatePickerDropdownMenu } from './styles';
+import React from "react";
+import PropTypes from "prop-types";
+import Calendar from "../Calendar";
+import * as Styled from "./styles";
+import { isDate, getDateISO } from "../../helpers/calendar";
 
 class Datepicker extends React.Component {
+  state = { date: null, calendarOpen: false };
 
-	state = { date: null, calendarOpen: false }
+  toggleCalendar = () =>
+    this.setState({ calendarOpen: !this.state.calendarOpen });
 
-	toggleCalendar = () => this.setState({ calendarOpen: !this.state.calendarOpen })
+  handleChange = evt => evt.preventDefault();
 
-	handleChange = evt => evt.preventDefault()
+  handleDateChange = date => {
+    const { onDateChanged } = this.props;
+    const { date: currentDate } = this.state;
+    const newDate = date ? getDateISO(date) : null;
 
-	handleDateChange = date => {
-		const { onDatePicked } = this.props;
-		const { date: currentDate } = this.state;
-		const newDate = date ? getDateISO(date) : null;
+    currentDate !== newDate &&
+      this.setState({ date: newDate, calendarOpen: false }, () => {
+        typeof onDateChanged === "function" && onDateChanged(this.state.date);
+      });
+  };
 
-		(currentDate !== newDate) && this.setState({ date: newDate, calendarOpen: false }, () => {
-			(typeof onDatePicked === 'function') && onDatePicked(this.state.date);
-		});
-	}
+  componentDidMount() {
+    const { value: date } = this.props;
+    const newDate = date && new Date(date);
 
-	get date() {
-		return this.state.date;
-	}
+    isDate(newDate) && this.setState({ date: getDateISO(newDate) });
+  }
 
-	componentDidMount() {
-		const { date } = this.props;
-		const newDate = date && new Date(date);
+  componentDidUpdate(prevProps) {
+    const { value: date } = this.props;
+    const { value: prevDate } = prevProps;
+    const dateISO = getDateISO(new Date(date));
+    const prevDateISO = getDateISO(new Date(prevDate));
 
-		isDate(newDate) && this.setState({ date: getDateISO(newDate) });
-	}
+    dateISO !== prevDateISO && this.setState({ date: dateISO });
+  }
 
-	componentDidUpdate(prevProps) {
-		const { date } = this.props;
-		const { date: prevDate } = prevProps;
-		const dateISO = getDateISO(new Date(date));
-		const prevDateISO = getDateISO(new Date(prevDate));
+  render() {
+    const { label } = this.props;
+    const { date, calendarOpen } = this.state;
 
-		(dateISO !== prevDateISO) && this.setState({ date: dateISO });
-	}
+    return (
+      <Styled.DatePickerContainer>
+        <Styled.DatePickerFormGroup>
+          <Styled.DatePickerLabel>{label}</Styled.DatePickerLabel>
+          <Styled.DatePickerInput
+            type="text"
+            value={date ? date.split("-").join(" / ") : ""}
+            onChange={this.handleChange}
+            readOnly="readonly"
+            placeholder="YYYY / MM / DD"
+          />
+        </Styled.DatePickerFormGroup>
 
-	render() {
-		const { label } = this.props;
-		const { date, calendarOpen } = this.state;
+        <Styled.DatePickerDropdown
+          isOpen={calendarOpen}
+          toggle={this.toggleCalendar}
+        >
+          <Styled.DatePickerDropdownToggle color="transparent" />
 
-		return (
-			<DatePickerContainer>
-
-				<DatePickerFormGroup>
-					<DatePickerLabel>{label}</DatePickerLabel>
-					<DatePickerInput type="text" value={date ? date.split('-').join(' / ') : ''} onChange={this.handleChange} readOnly="readonly" placeholder="YYYY / MM / DD" />
-				</DatePickerFormGroup>
-
-				<DatePickerDropdown isOpen={calendarOpen} toggle={this.toggleCalendar}>
-					<DatePickerDropdownToggle color="transparent" />
-
-					<DatePickerDropdownMenu>
-						{ calendarOpen && <Calendar date={date && new Date(date)} onDateChanged={this.handleDateChange} /> }
-					</DatePickerDropdownMenu>
-				</DatePickerDropdown>
-
-			</DatePickerContainer>
-		)
-	}
-
+          <Styled.DatePickerDropdownMenu>
+            {calendarOpen && (
+              <Calendar
+                date={date && new Date(date)}
+                onDateChanged={this.handleDateChange}
+              />
+            )}
+          </Styled.DatePickerDropdownMenu>
+        </Styled.DatePickerDropdown>
+      </Styled.DatePickerContainer>
+    );
+  }
 }
+
+Datepicker.propTypes = {
+  label: PropTypes.string,
+  value: PropTypes.string,
+  onDateChanged: PropTypes.func
+};
 
 export default Datepicker;
